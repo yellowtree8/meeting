@@ -1,0 +1,24 @@
+{
+  "name": "zhimian-interview-copilot",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Windows desktop interview copilot with WASAPI system-audio loopback",
+  "main": "desktop/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis",
+    "dist:dir": "electron-builder --win dir"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.zhimian.interviewcopilot",
+    "productName": "知面实时面试助手",
+    "directories": { "output": "dist" },
+    "files": ["index.html", "desktop/**/*", "README.md", "gateway/server.js", "gateway/package.json"],
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true }
+  }
+}
