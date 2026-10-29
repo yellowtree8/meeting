@@ -17,7 +17,8 @@
     "appId": "com.zhimian.interviewcopilot",
     "productName": "知面实时面试助手",
     "directories": { "output": "dist" },
-    "files": ["index.html", "desktop/**/*", "README.md", "gateway/server.js", "gateway/package.json"],
+    "files": ["index.html", "desktop/**/*", "README.md", "gateway/server.js", "gateway/funasr-requirements.txt", "gateway/funasr_server.py", "gateway/package.json", "gateway/.env.example", "gateway/node_modules/**/*"],
+    "asarUnpack": ["gateway/funasr_server.py"],
     "win": { "target": [{ "target": "nsis", "arch": ["x64"] }] },
     "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true }
   }

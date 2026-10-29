@@ -2,6 +2,55 @@
 
 const { app, BrowserWindow, desktopCapturer, ipcMain, session } = require('electron');
 const path = require('node:path');
+const fs = require('node:fs');
+const { spawn } = require('node:child_process');
+
+let gatewayProcess = null;
+
+function startAsrGateway() {
+  const appPath = app.getAppPath();
+  const gatewayDir = path.join(appPath, 'gateway');
+  const serverPath = path.join(gatewayDir, 'server.js');
+  let envPath = path.join(gatewayDir, '.env');
+
+  // Packaged apps keep editable credentials in the per-user data directory;
+  // never bundle the developer's Tencent secrets into the installer.
+  if (app.isPackaged) {
+    const userGatewayDir = path.join(app.getPath('userData'), 'gateway');
+    envPath = path.join(userGatewayDir, '.env');
+    fs.mkdirSync(userGatewayDir, { recursive: true });
+    if (!fs.existsSync(envPath)) {
+      const examplePath = path.join(gatewayDir, '.env.example');
+      if (fs.existsSync(examplePath)) fs.copyFileSync(examplePath, envPath);
+      console.warn(`[gateway] 首次运行，请在此文件填写腾讯云凭据：${envPath}`);
+    }
+  }
+
+  const childEnv = { ...process.env, ELECTRON_RUN_AS_NODE: '1', ASR_GATEWAY_ENV_FILE: envPath };
+  try {
+    gatewayProcess = spawn(process.execPath, [serverPath], {
+      cwd: app.isPackaged ? app.getPath('userData') : gatewayDir,
+      env: childEnv,
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+    gatewayProcess.once('error', (error) => {
+      console.error('[gateway] 无法启动本地 ASR 网关：', error.message);
+      gatewayProcess = null;
+    });
+    gatewayProcess.once('exit', (code) => {
+      if (code !== 0 && code !== null) console.error(`[gateway] 进程已退出，代码 ${code}`);
+      gatewayProcess = null;
+    });
+  } catch (error) {
+    console.error('[gateway] 无法启动本地 ASR 网关：', error.message);
+  }
+}
+
+function stopAsrGateway() {
+  if (gatewayProcess && !gatewayProcess.killed) gatewayProcess.kill();
+  gatewayProcess = null;
+}
 
 function configureSystemAudioLoopback() {
   session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
@@ -37,7 +86,7 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 720,
     backgroundColor: '#f4f5f7',
-    title: '知面 · 实时面试助手',
+    title: '自定义工具',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -75,7 +124,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  if (process.platform === 'win32') configureSystemAudioLoopback();
+  if (process.platform === 'win32') {
+    configureSystemAudioLoopback();
+    startAsrGateway();
+  }
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -85,3 +137,5 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
+app.on('before-quit', stopAsrGateway);

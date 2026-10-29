@@ -1,0 +1,8 @@
+# Install CPU-only PyTorch separately using the official PyTorch selector.
+# Windows streaming feature extraction uses kaldi-native-fbank when torchaudio is absent.
+funasr>=1.2.6
+modelscope>=1.20.0
+numpy<2
+soundfile
+websockets>=14,<16
+kaldi-native-fbank>=1.22.3
